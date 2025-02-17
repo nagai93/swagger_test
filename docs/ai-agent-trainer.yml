@@ -1,0 +1,182 @@
+openapi: 3.0.0
+
+info:
+  title: AI Trainer API
+  description: AWS Lambdaを介してAIエージェントと会話するAPI。API Gatewayを通じてアクセス可能。
+  version: '1.1'
+  contact:
+    name: 衣斐
+
+servers:
+  - url: https://8pljjvexhj.execute-api.us-east-1.amazonaws.com/prod
+    description: API Gatewayのエンドポイント
+
+paths:
+  /:
+    post:
+      summary: AIエージェントとの会話
+      description: |
+        ユーザーからのメッセージを受け取り、AI エージェントからの応答を返す。
+
+        "category" が "summary" または "websearch" の場合は、"messages" の最後に要素を追加。
+      parameters:
+        - in: header
+          name: Origin
+          schema:
+            type: string
+            format: uri
+          required: true
+          description: CORS設定のため、リクエスト元のオリジンを指定（例 `https://knowledge.token.co.jp`）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - messages
+              properties:
+                messages:
+                  type: array
+                  description: 会話履歴
+                  items:
+                    type: object
+                    required:
+                      - role
+                      - content
+                    properties:
+                      role:
+                        type: string
+                        enum: [user, assistant]
+                        description: メッセージの送信者
+                      content:
+                        type: string
+                        description: メッセージの内容
+                category:
+                  type: string
+                  enum: [terms, summary, websearch]
+                  description: |
+                    AIの実行機能
+                    - `terms`： 用語の解説
+                    - `summary`： 要約の実行（ユーザーの入力なし）
+                    - `websearch`： web検索の実行（ユーザーの入力なし）
+
+            examples:
+              single-turn:
+                value:
+                  messages:
+                    - role: user
+                      content: こんにちは
+              multi-turn:
+                value:
+                  messages:
+                    - role: user
+                      content: こんにちは
+                    - role: assistant
+                      content: こんにちは！今日はどんなお手伝いをしましょうか？
+                    - role: user
+                      content: お元気ですか？
+              summary-button:
+                summary: 要約ボタン
+                value:
+                  messages:
+                    - role: user
+                      content: 相続税について説明してください
+                    - role: assistant
+                      content: 相続税は、被相続人が亡くなった際に、相続人が相続した財産に対して課税される税金です。
+                    - role: user
+                      content: 要約してください
+                  category:
+                    summary
+              websearch-button:
+                summary: web検索ボタン
+                value:
+                  messages:
+                    - role: user
+                      content: 今日の渋谷の天気を教えてください
+                    - role: assistant
+                      content: 渋谷の天気に関する情報はありません
+                    - role: user
+                      content: web検索を実行してください
+                  category:
+                    websearch
+
+      responses:
+        '200':
+          description: 成功時のレスポンス
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                    messages:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          role:
+                            type: string
+                          content:
+                            type: string
+                    sources:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                          page_title:
+                            type: string
+                          content:
+                            type: string
+                          category:
+                            type: string
+                          url:
+                            type: string
+                    suggestions:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                          page_title:
+                            type: string
+                          content:
+                            type: string
+                          category:
+                            type: string
+                          url:
+                            type: string
+
+        '400':
+          description: リクエストが無効（例： `messages`フィールドが欠落）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: string
+                    example: "Bad Request: 'messages' field is missing"
+        '403':
+          description: 許可されていないオリジンからのリクエスト
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: string
+                    example: "Forbidden: Origin not allowed"
+        '500':
+          description: サーバー内部エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: string
+                    example: "Internal Server Error"
+security: []
