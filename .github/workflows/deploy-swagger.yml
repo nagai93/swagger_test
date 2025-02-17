@@ -26,6 +26,8 @@ jobs:
         with:
           output: swagger-ui
           spec-file: docs/ai-agent-trainer.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Documents
         uses: actions/upload-pages-artifact@v3
         with:
